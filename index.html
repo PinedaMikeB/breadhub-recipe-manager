@@ -842,7 +842,7 @@
                                 <input
                                     type="number"
                                     step="0.01"
-                                    placeholder="Cost ($)"
+                                    placeholder="Cost (₱)"
                                     value={ingredient.cost}
                                     onChange={(e) => updateIngredient(index, 'cost', e.target.value)}
                                     required
@@ -871,12 +871,12 @@
 
                     <div className="cost-summary">
                         <div className="total-cost">
-                            💰 Total Recipe Cost: ${calculateTotalCost()}
+                            💰 Total Recipe Cost: ₱{calculateTotalCost()}
                         </div>
                         {type === 'bread' && totalFlour && (
                             <>
                                 <div style={{marginTop: '10px', fontSize: '0.9rem', color: '#666'}}>
-                                    Cost per 100g flour: ${(calculateTotalCost() / (parseFloat(totalFlour) / 100)).toFixed(2)}
+                                    Cost per 100g flour: ₱{(calculateTotalCost() / (parseFloat(totalFlour) / 100)).toFixed(2)}
                                 </div>
                                 <div style={{marginTop: '10px', fontSize: '0.9rem', color: '#666'}}>
                                     🍞 Total dough weight: {calculateTotalWeight()}g
@@ -969,18 +969,18 @@
                                         <span>
                                             {ing.quantity} {ing.unit}
                                             {recipe.type === 'bread' && ing.percentage && parseFloat(ing.percentage) > 0 && ` (${ing.percentage}%)`}
-                                            {user.role === 'admin' && ` - $${ing.cost}`}
+                                            {user.role === 'admin' && ` - ₱${ing.cost}`}
                                         </span>
                                     </div>
                                 ))}
                             </div>
                             {user.role === 'admin' && (
                                 <div className="cost-summary">
-                                    <div className="total-cost">💰 Total Cost: ${recipe.totalCost}</div>
+                                    <div className="total-cost">💰 Total Cost: ₱{recipe.totalCost}</div>
                                     {recipe.type === 'bread' && recipe.totalFlour && (
                                         <>
                                             <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
-                                                Per 100g flour: ${(recipe.totalCost / (parseFloat(recipe.totalFlour) / 100)).toFixed(2)}
+                                                Per 100g flour: ₱{(recipe.totalCost / (parseFloat(recipe.totalFlour) / 100)).toFixed(2)}
                                             </div>
                                             {(() => {
                                                 const totalWeight = recipe.ingredients.reduce((total, ing) => total + (parseFloat(ing.quantity) || 0), 0);
@@ -1234,7 +1234,7 @@
                         }
                         
                         if (userRole === 'admin') {
-                            row.push(`$${ing.cost}`);
+                            row.push(`₱${ing.cost}`);
                         }
                         
                         return row;
@@ -1262,13 +1262,13 @@
                         const finalY = doc.lastAutoTable.finalY + 20;
                         doc.setFontSize(14);
                         doc.setTextColor(0, 102, 204);
-                        doc.text(`💰 Total Cost: $${recipe.totalCost}`, 20, finalY);
+                        doc.text(`💰 Total Cost: ₱${recipe.totalCost}`, 20, finalY);
                         
                         if (recipe.type === 'bread' && recipe.totalFlour) {
                             doc.setFontSize(12);
                             doc.setTextColor(102, 102, 102);
                             const costPer100g = (recipe.totalCost / (parseFloat(recipe.totalFlour) / 100)).toFixed(2);
-                            doc.text(`Cost per 100g flour: $${costPer100g}`, 20, finalY + 10);
+                            doc.text(`Cost per 100g flour: ₱${costPer100g}`, 20, finalY + 10);
                         }
                     }
 

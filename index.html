@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BreadHub Recipe Manager</title>
+    
+    <!-- Firebase SDK v9 Compatible -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .auth-container {
+            max-width: 400px;
+            margin: 50px auto;
+        }        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .ingredient-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 15px;
+        }        
+        .recipe-card {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+        
+        .recipe-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .recipe-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .recipe-type {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .ingredients-list {
+            margin: 15px 0;
+        }
+        
+        .ingredient-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }        
+        .cost-summary {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        
+        .total-cost {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #0066cc;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .search-bar {
+            margin-bottom: 20px;
+        }        
+        .search-bar input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .firebase-status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .firebase-connected {
+            background: #d4edda;
+            color: #155724;
+        }        
+        .firebase-disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .ingredient-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .ingredient-row > * {
+                margin-bottom: 5px;
+            }
+            
+            .actions {
+                flex-direction: column;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                flex: 1;
+                text-align: center;
+                min-width: 120px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+        }    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // Firebase Configuration - Using your provided config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCv_6FGxvhMVbGjfGI5VKI9PyXaMlQeH2k",
+            authDomain: "breadhub-ce8fd.firebaseapp.com",
+            projectId: "breadhub-ce8fd",
+            storageBucket: "breadhub-ce8fd.firebasestorage.app",
+            messagingSenderId: "644722238875",
+            appId: "1:644722238875:web:15b04e93f9bc909e40ed3e"
+        };
+
+        // Initialize Firebase
+        let app, auth, db;
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            auth = firebase.auth();
+            db = firebase.firestore();
+            console.log("✅ Firebase initialized successfully");
+        } catch (error) {
+            console.error("❌ Firebase initialization error:", error);
+        }
+
+        // Firebase service functions
+        const firebaseService = {
+            // Authentication
+            signUp: async (email, password, role = 'baker') => {
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
+                
+                // Store user role in Firestore
+                await db.collection('users').doc(user.uid).set({
+                    email: user.email,
+                    role: role,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                return user;
+            },
+            signIn: async (email, password) => {
+                return await auth.signInWithEmailAndPassword(email, password);
+            },
+
+            signOut: async () => {
+                return await auth.signOut();
+            },
+
+            // User role management
+            getUserRole: async (uid) => {
+                const doc = await db.collection('users').doc(uid).get();
+                return doc.exists ? doc.data().role : 'baker';
+            },
+
+            // Recipe management
+            saveRecipe: async (recipe, userId) => {
+                const recipeData = {
+                    ...recipe,
+                    userId: userId,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                if (recipe.id) {
+                    await db.collection('recipes').doc(recipe.id).update(recipeData);
+                    return recipe.id;
+                } else {
+                    const docRef = await db.collection('recipes').add({
+                        ...recipeData,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    return docRef.id;
+                }
+            },
+
+            getRecipes: async (userId = null) => {
+                let query = db.collection('recipes').orderBy('createdAt', 'desc');
+                
+                const snapshot = await query.get();
+                return snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    return {
+                        id: doc.id,
+                        ...data,
+                        createdAt: data.createdAt?.toDate ? 
+                            data.createdAt.toDate().toISOString() : 
+                            (data.createdAt || new Date().toISOString())
+                    };
+                });
+            },
+            deleteRecipe: async (recipeId) => {
+                await db.collection('recipes').doc(recipeId).delete();
+            },
+
+            // Real-time listener for recipes
+            onRecipesChange: (callback, userId = null) => {
+                let query = db.collection('recipes').orderBy('createdAt', 'desc');
+                
+                return query.onSnapshot(snapshot => {
+                    const recipes = snapshot.docs.map(doc => ({
+                        id: doc.id,
+                        ...doc.data(),
+                        createdAt: doc.data().createdAt?.toDate().toISOString() || new Date().toISOString()
+                    }));
+                    callback(recipes);
+                });
+            }
+        };
+
+        // Authentication Component
+        const AuthForm = ({ onAuthStateChange }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [role, setRole] = useState('baker');
+            const [isSignUp, setIsSignUp] = useState(false);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+
+                try {
+                    if (isSignUp) {
+                        await firebaseService.signUp(email, password, role);
+                    } else {
+                        await firebaseService.signIn(email, password);
+                    }
+                } catch (error) {
+                    setError(error.message);
+                }
+                setLoading(false);
+            };
+            return (
+                <div className="auth-container">
+                    <div className="card">
+                        <h2 style={{textAlign: 'center', marginBottom: '20px'}}>
+                            {isSignUp ? 'Create BreadHub Account' : 'Login to BreadHub'}
+                        </h2>
+                        
+                        {error && <div className="error">{error}</div>}
+                        
+                        <form onSubmit={handleSubmit}>
+                            <div className="form-group">
+                                <label>Email</label>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                    placeholder="your@email.com"
+                                />
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Password</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    minLength="6"
+                                    placeholder="6+ characters"
+                                />
+                            </div>
+                            
+                            {isSignUp && (
+                                <div className="form-group">
+                                    <label>Role</label>
+                                    <select value={role} onChange={(e) => setRole(e.target.value)}>
+                                        <option value="baker">Baker (View recipes only)</option>
+                                        <option value="admin">Admin (Full access + costs)</option>
+                                    </select>
+                                </div>
+                            )}                            
+                            <button type="submit" className="btn" style={{width: '100%'}} disabled={loading}>
+                                {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Login')}
+                            </button>
+                        </form>
+                        
+                        <p style={{textAlign: 'center', marginTop: '15px'}}>
+                            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+                            <button 
+                                type="button" 
+                                onClick={() => setIsSignUp(!isSignUp)}
+                                style={{background: 'none', border: 'none', color: '#667eea', cursor: 'pointer', textDecoration: 'underline'}}
+                            >
+                                {isSignUp ? 'Login' : 'Sign Up'}
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            );
+        };
+
+        // Recipe Form Component
+        const RecipeForm = ({ onSave, editingRecipe, onCancel, user }) => {
+            const [name, setName] = useState('');
+            const [type, setType] = useState('bread');
+            const [ingredients, setIngredients] = useState([{ name: '', quantity: '', unit: 'g', cost: '' }]);
+            const [totalFlour, setTotalFlour] = useState('');
+            const [pieceWeight, setPieceWeight] = useState('60'); // Default weight per piece in grams
+            const [quantityNeeded, setQuantityNeeded] = useState(''); // New field for scaling
+            const [electricLpgLabor, setElectricLpgLabor] = useState('5'); // Default ₱5 per piece
+            const [grossMargin, setGrossMargin] = useState('0.50'); // Default 50% margin
+            const [originalIngredients, setOriginalIngredients] = useState([]); // Store original recipe
+            const [originalTotalFlour, setOriginalTotalFlour] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            useEffect(() => {
+                if (editingRecipe) {
+                    setName(editingRecipe.name);
+                    setType(editingRecipe.type);
+                    setIngredients(editingRecipe.ingredients);
+                    setTotalFlour(editingRecipe.totalFlour || '');
+                    setPieceWeight(editingRecipe.pieceWeight || '60');
+                    setElectricLpgLabor(editingRecipe.electricLpgLabor || '5');
+                    setGrossMargin(editingRecipe.grossMargin || '0.50');
+                    
+                    // Store original recipe for scaling
+                    setOriginalIngredients(editingRecipe.ingredients);
+                    setOriginalTotalFlour(editingRecipe.totalFlour || '');
+                    
+                    // Reset quantity needed when editing
+                    setQuantityNeeded('');
+                }
+            }, [editingRecipe]);
+
+            // Auto-recalculate ingredient quantities when total flour changes
+            useEffect(() => {
+                if (type === 'bread' && totalFlour && ingredients.length > 0) {
+                    const flourWeight = parseFloat(totalFlour) || 0;
+                    if (flourWeight > 0) {
+                        const hasPercentages = ingredients.some(ing => ing.percentage);
+                        if (hasPercentages) {
+                            const recalculated = ingredients.map(ing => {
+                                if (ing.percentage && !ing.name.toLowerCase().includes('flour')) {
+                                    const newQuantity = (flourWeight * parseFloat(ing.percentage) / 100).toFixed(1);
+                                    return { ...ing, quantity: newQuantity };
+                                }
+                                return ing;
+                            });
+                            setIngredients(recalculated);
+                        }
+                    }
+                }
+            }, [totalFlour, type]); // Don't include ingredients to avoid infinite loop
+
+            // Scale recipe when quantity needed changes
+            useEffect(() => {
+                if (quantityNeeded && originalIngredients.length > 0 && pieceWeight) {
+                    const needed = parseFloat(quantityNeeded);
+                    const weightPerPiece = parseFloat(pieceWeight);
+                    
+                    if (needed > 0 && weightPerPiece > 0) {
+                        // Calculate original recipe yield
+                        const originalTotalWeight = originalIngredients.reduce((total, ing) => 
+                            total + (parseFloat(ing.quantity) || 0), 0);
+                        const originalPieces = Math.floor(originalTotalWeight / weightPerPiece);
+                        
+                        if (originalPieces > 0) {
+                            // Calculate scale factor
+                            const scaleFactor = needed / originalPieces;
+                            
+                            // Scale all ingredients
+                            const scaledIngredients = originalIngredients.map(ing => ({
+                                ...ing,
+                                quantity: (parseFloat(ing.quantity) * scaleFactor).toFixed(1),
+                                cost: (parseFloat(ing.cost) * scaleFactor).toFixed(2)
+                            }));
+                            
+                            // Scale total flour
+                            const scaledFlour = (parseFloat(originalTotalFlour) * scaleFactor).toFixed(1);
+                            
+                            setIngredients(scaledIngredients);
+                            setTotalFlour(scaledFlour);
+                        }
+                    }
+                }
+            }, [quantityNeeded, originalIngredients, originalTotalFlour, pieceWeight]);
+            const addIngredient = () => {
+                setIngredients([...ingredients, { name: '', quantity: '', unit: 'g', cost: '' }]);
+            };
+
+            const resetScaling = () => {
+                if (originalIngredients.length > 0) {
+                    setIngredients(originalIngredients);
+                    setTotalFlour(originalTotalFlour);
+                    setQuantityNeeded('');
+                }
+            };
+
+            const updateIngredient = (index, field, value) => {
+                const updated = [...ingredients];
+                updated[index][field] = value;
+                setIngredients(updated);
+            };
+
+            const removeIngredient = (index) => {
+                setIngredients(ingredients.filter((_, i) => i !== index));
+            };
+
+            const calculateTotalCost = () => {
+                return ingredients.reduce((total, ing) => {
+                    const cost = parseFloat(ing.cost) || 0;
+                    return total + cost;
+                }, 0).toFixed(2);
+            };
+
+            const calculateTotalWeight = () => {
+                return ingredients.reduce((total, ing) => {
+                    const quantity = parseFloat(ing.quantity) || 0;
+                    return total + quantity;
+                }, 0);
+            };
+
+            const calculatePieceCount = () => {
+                const totalWeight = calculateTotalWeight();
+                const weight = parseFloat(pieceWeight) || 60;
+                return weight > 0 ? Math.floor(totalWeight / weight) : 0;
+            };
+
+            const calculateCostPerPiece = () => {
+                const totalCost = parseFloat(calculateTotalCost());
+                const pieceCount = calculatePieceCount();
+                const baseProductionCost = pieceCount > 0 ? (totalCost / pieceCount) : 0;
+                const electricLpgLaborCost = parseFloat(electricLpgLabor) || 0;
+                return (baseProductionCost + electricLpgLaborCost).toFixed(2);
+            };
+
+            const calculateSRP = () => {
+                const costPerPiece = parseFloat(calculateCostPerPiece());
+                const margin = parseFloat(grossMargin) || 0;
+                
+                if (margin >= 1) return '0.00'; // Invalid margin
+                
+                const srp = costPerPiece / (1 - margin);
+                return srp.toFixed(2);
+            };
+
+            const calculateBakersPercentage = () => {
+                const flourWeight = parseFloat(totalFlour) || 0;
+                if (flourWeight === 0) return ingredients;
+                
+                return ingredients.map(ing => ({
+                    ...ing,
+                    percentage: ing.name.toLowerCase().includes('flour') ? 
+                        100 : 
+                        ((parseFloat(ing.quantity) || 0) / flourWeight * 100).toFixed(1)
+                }));
+            };
+
+            const handleSave = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+
+                try {
+                    const recipe = {
+                        name,
+                        type,
+                        ingredients: type === 'bread' ? calculateBakersPercentage() : ingredients,
+                        totalFlour: type === 'bread' ? totalFlour : '',
+                        pieceWeight: type === 'bread' ? pieceWeight : '',
+                        electricLpgLabor: type === 'bread' ? electricLpgLabor : '',
+                        grossMargin: type === 'bread' ? grossMargin : '',
+                        totalCost: calculateTotalCost(),
+                        createdAt: editingRecipe?.createdAt || new Date().toISOString()
+                    };
+
+                    // Only include id if we're editing an existing recipe
+                    if (editingRecipe?.id) {
+                        recipe.id = editingRecipe.id;
+                    }
+                    
+                    await onSave(recipe);
+                } catch (error) {
+                    console.error('Error saving recipe:', error);
+                    alert('Error saving recipe. Please try again.');
+                }
+                setLoading(false);
+            };
+            return (
+                <form onSubmit={handleSave}>
+                    <div className="form-group">
+                        <label>Recipe Name</label>
+                        <input
+                            type="text"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                            placeholder="e.g., Sourdough Boule"
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <label>Type</label>
+                        <select value={type} onChange={(e) => setType(e.target.value)}>
+                            <option value="bread">🍞 Bread (with baker's percentages)</option>
+                            <option value="drink">🥤 Drink</option>
+                        </select>
+                    </div>
+
+                    {type === 'bread' && (
+                        <>
+                            <div className="form-group">
+                                <label>Total Flour Weight (g)</label>
+                                <input
+                                    type="number"
+                                    value={totalFlour}
+                                    onChange={(e) => setTotalFlour(e.target.value)}
+                                    placeholder="e.g., 500"
+                                    min="1"
+                                />
+                                <small style={{color: '#666', fontSize: '0.9rem'}}>
+                                    Used to calculate baker's percentages automatically
+                                </small>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Weight per Piece (g)</label>
+                                <input
+                                    type="number"
+                                    value={pieceWeight}
+                                    onChange={(e) => setPieceWeight(e.target.value)}
+                                    placeholder="e.g., 60"
+                                    min="1"
+                                />
+                                <small style={{color: '#666', fontSize: '0.9rem'}}>
+                                    Weight of each individual bread piece (e.g., 60g for pandecoco)
+                                </small>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Quantity Needed (pieces)</label>
+                                <input
+                                    type="number"
+                                    value={quantityNeeded}
+                                    onChange={(e) => setQuantityNeeded(e.target.value)}
+                                    placeholder="e.g., 100"
+                                    min="1"
+                                />
+                                <small style={{color: '#666', fontSize: '0.9rem'}}>
+                                    Enter quantity to scale recipe automatically (original recipe will be saved)
+                                </small>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Electric/LPG/Labor Cost per Piece (₱)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={electricLpgLabor}
+                                    onChange={(e) => setElectricLpgLabor(e.target.value)}
+                                    placeholder="e.g., 5.00"
+                                    min="0"
+                                />
+                                <small style={{color: '#666', fontSize: '0.9rem'}}>
+                                    Additional costs per piece (electricity, gas, labor)
+                                </small>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Gross Margin (decimal)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={grossMargin}
+                                    onChange={(e) => setGrossMargin(e.target.value)}
+                                    placeholder="e.g., 0.50"
+                                    min="0"
+                                    max="0.99"
+                                />
+                                <small style={{color: '#666', fontSize: '0.9rem'}}>
+                                    Profit margin (0.50 = 50% margin for pricing)
+                                </small>
+                            </div>
+                        </>
+                    )}
+
+                    <div className="form-group">
+                        <label>Ingredients</label>                        {ingredients.map((ingredient, index) => (
+                            <div key={index} className="ingredient-row">
+                                <input
+                                    type="text"
+                                    placeholder="Ingredient name (e.g., Bread flour)"
+                                    value={ingredient.name}
+                                    onChange={(e) => updateIngredient(index, 'name', e.target.value)}
+                                    required
+                                />
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Quantity"
+                                    value={ingredient.quantity}
+                                    onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                                    required
+                                    min="0"
+                                />
+                                <select
+                                    value={ingredient.unit}
+                                    onChange={(e) => updateIngredient(index, 'unit', e.target.value)}
+                                >
+                                    <option value="g">g</option>
+                                    <option value="kg">kg</option>
+                                    <option value="ml">ml</option>
+                                    <option value="l">l</option>
+                                    <option value="pcs">pcs</option>
+                                    <option value="tbsp">tbsp</option>
+                                    <option value="tsp">tsp</option>
+                                    <option value="cups">cups</option>
+                                </select>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="Cost ($)"
+                                    value={ingredient.cost}
+                                    onChange={(e) => updateIngredient(index, 'cost', e.target.value)}
+                                    required
+                                    min="0"
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    onClick={() => removeIngredient(index)}
+                                    style={{padding: '8px 12px'}}
+                                    disabled={ingredients.length === 1}
+                                    title="Remove ingredient"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}                        <button type="button" className="btn btn-secondary" onClick={addIngredient}>
+                            + Add Ingredient
+                        </button>
+                        {quantityNeeded && originalIngredients.length > 0 && (
+                            <button type="button" className="btn btn-warning" onClick={resetScaling} style={{marginLeft: '10px'}}>
+                                🔄 Reset to Original
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="cost-summary">
+                        <div className="total-cost">
+                            💰 Total Recipe Cost: ${calculateTotalCost()}
+                        </div>
+                        {type === 'bread' && totalFlour && (
+                            <>
+                                <div style={{marginTop: '10px', fontSize: '0.9rem', color: '#666'}}>
+                                    Cost per 100g flour: ${(calculateTotalCost() / (parseFloat(totalFlour) / 100)).toFixed(2)}
+                                </div>
+                                <div style={{marginTop: '10px', fontSize: '0.9rem', color: '#666'}}>
+                                    🍞 Total dough weight: {calculateTotalWeight()}g
+                                </div>
+                                {pieceWeight && parseFloat(pieceWeight) > 0 && (
+                                    <>
+                                        <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666'}}>
+                                            📊 Estimated pieces: {calculatePieceCount()} pieces ({pieceWeight}g each)
+                                        </div>
+                                        <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666'}}>
+                                            💵 Production cost per piece: ₱{(parseFloat(calculateTotalCost()) / calculatePieceCount()).toFixed(2)}
+                                        </div>
+                                        <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666'}}>
+                                            ⚡ Electric/LPG/Labor: ₱{electricLpgLabor} per piece
+                                        </div>
+                                        <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666', fontWeight: 'bold'}}>
+                                            🔸 Total cost per piece: ₱{calculateCostPerPiece()}
+                                        </div>
+                                        <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666'}}>
+                                            📈 Gross margin: {(parseFloat(grossMargin) * 100).toFixed(0)}%
+                                        </div>
+                                        <div style={{marginTop: '5px', fontSize: '1rem', color: '#007bff', fontWeight: 'bold'}}>
+                                            🏷️ SRP: ₱{calculateSRP()}
+                                        </div>
+                                    </>
+                                )}
+                            </>
+                        )}
+                    </div>
+
+                    <div className="actions">
+                        <button type="submit" className="btn btn-success" disabled={loading}>
+                            {loading ? '💾 Saving...' : (editingRecipe ? '📝 Update Recipe' : '💾 Save Recipe')}
+                        </button>
+                        <button type="button" className="btn btn-secondary" onClick={onCancel}>
+                            ❌ Cancel
+                        </button>
+                    </div>
+                </form>
+            );
+        };
+
+        // Recipe List Component
+        const RecipeList = ({ recipes, onEdit, onDelete, onPrint, user }) => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterType, setFilterType] = useState('all');
+
+            const filteredRecipes = recipes.filter(recipe => {
+                const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesType = filterType === 'all' || recipe.type === filterType;
+                return matchesSearch && matchesType;
+            });
+            return (
+                <div>
+                    <div className="search-bar">
+                        <input
+                            type="text"
+                            placeholder="🔍 Search recipes..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    
+                    <div className="form-group">
+                        <select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                            <option value="all">📋 All Types ({recipes.length})</option>
+                            <option value="bread">🍞 Bread ({recipes.filter(r => r.type === 'bread').length})</option>
+                            <option value="drink">🥤 Drinks ({recipes.filter(r => r.type === 'drink').length})</option>
+                        </select>
+                    </div>
+
+                    {filteredRecipes.map((recipe, index) => (
+                        <div key={recipe.id || `recipe-${index}`} className="recipe-card">
+                            <div className="recipe-header">
+                                <div>
+                                    <span className="recipe-title">{recipe.name}</span>
+                                    <span className="recipe-type">
+                                        {recipe.type === 'bread' ? '🍞' : '🥤'} {recipe.type}
+                                    </span>
+                                </div>
+                                <div style={{fontSize: '0.8rem', color: '#666'}}>
+                                    📅 {new Date(recipe.createdAt).toLocaleDateString()}
+                                </div>
+                            </div>
+                            
+                            <div className="ingredients-list">
+                                {recipe.ingredients.map((ing, index) => (
+                                    <div key={index} className="ingredient-item">
+                                        <span>📦 {ing.name}</span>
+                                        <span>
+                                            {ing.quantity} {ing.unit}
+                                            {recipe.type === 'bread' && ing.percentage && parseFloat(ing.percentage) > 0 && ` (${ing.percentage}%)`}
+                                            {user.role === 'admin' && ` - $${ing.cost}`}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            {user.role === 'admin' && (
+                                <div className="cost-summary">
+                                    <div className="total-cost">💰 Total Cost: ${recipe.totalCost}</div>
+                                    {recipe.type === 'bread' && recipe.totalFlour && (
+                                        <>
+                                            <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
+                                                Per 100g flour: ${(recipe.totalCost / (parseFloat(recipe.totalFlour) / 100)).toFixed(2)}
+                                            </div>
+                                            {(() => {
+                                                const totalWeight = recipe.ingredients.reduce((total, ing) => total + (parseFloat(ing.quantity) || 0), 0);
+                                                const pieceCount = recipe.pieceWeight && parseFloat(recipe.pieceWeight) > 0 ? 
+                                                    Math.floor(totalWeight / parseFloat(recipe.pieceWeight)) : 0;
+                                                const productionCostPerPiece = pieceCount > 0 ? (parseFloat(recipe.totalCost) / pieceCount) : 0;
+                                                const electricLpgLabor = parseFloat(recipe.electricLpgLabor) || 0;
+                                                const totalCostPerPiece = productionCostPerPiece + electricLpgLabor;
+                                                const grossMargin = parseFloat(recipe.grossMargin) || 0;
+                                                const srp = grossMargin < 1 ? (totalCostPerPiece / (1 - grossMargin)) : 0;
+                                                
+                                                return (
+                                                    <>
+                                                        <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
+                                                            🍞 Total weight: {totalWeight}g
+                                                        </div>
+                                                        {pieceCount > 0 && (
+                                                            <>
+                                                                <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
+                                                                    📊 Makes: {pieceCount} pieces ({recipe.pieceWeight}g each)
+                                                                </div>
+                                                                <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
+                                                                    💵 Production: ₱{productionCostPerPiece.toFixed(2)}
+                                                                </div>
+                                                                {electricLpgLabor > 0 && (
+                                                                    <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
+                                                                        ⚡ Electric/LPG/Labor: ₱{electricLpgLabor.toFixed(2)}
+                                                                    </div>
+                                                                )}
+                                                                <div style={{fontSize: '0.9rem', marginTop: '5px', fontWeight: 'bold'}}>
+                                                                    🔸 Total cost: ₱{totalCostPerPiece.toFixed(2)}
+                                                                </div>
+                                                                {grossMargin > 0 && srp > 0 && (
+                                                                    <>
+                                                                        <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
+                                                                            📈 Margin: {(grossMargin * 100).toFixed(0)}%
+                                                                        </div>
+                                                                        <div style={{fontSize: '1rem', marginTop: '5px', color: '#007bff', fontWeight: 'bold'}}>
+                                                                            🏷️ SRP: ₱{srp.toFixed(2)}
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                            
+                            {user.role === 'baker' && recipe.type === 'bread' && (
+                                <div className="cost-summary" style={{background: '#f0f8f0'}}>
+                                    {(() => {
+                                        const totalWeight = recipe.ingredients.reduce((total, ing) => total + (parseFloat(ing.quantity) || 0), 0);
+                                        const pieceCount = recipe.pieceWeight && parseFloat(recipe.pieceWeight) > 0 ? 
+                                            Math.floor(totalWeight / parseFloat(recipe.pieceWeight)) : 0;
+                                        
+                                        return (
+                                            <>
+                                                <div style={{fontSize: '0.9rem', color: '#333'}}>
+                                                    🍞 Total dough weight: {totalWeight}g
+                                                </div>
+                                                {pieceCount > 0 && (
+                                                    <div style={{fontSize: '0.9rem', marginTop: '5px', color: '#333'}}>
+                                                        📊 Makes approximately: {pieceCount} pieces ({recipe.pieceWeight}g each)
+                                                    </div>
+                                                )}
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            )}
+
+                            <div className="actions">
+                                <button className="btn" onClick={() => onPrint(recipe)}>
+                                    🖨️ Print PDF
+                                </button>
+                                {user.role === 'admin' && (
+                                    <>
+                                        <button className="btn btn-secondary" onClick={() => onEdit(recipe)}>
+                                            ✏️ Edit
+                                        </button>
+                                        <button 
+                                            className="btn btn-danger" 
+                                            onClick={() => onDelete(recipe.id)}
+                                            title="Delete recipe"
+                                        >
+                                            🗑️ Delete
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                    
+                    {filteredRecipes.length === 0 && (
+                        <div style={{textAlign: 'center', padding: '40px', color: '#666'}}>
+                            {searchTerm ? (
+                                <>🔍 No recipes found matching "{searchTerm}"</>
+                            ) : (
+                                <>📝 {user.role === 'admin' ? "Create your first recipe!" : "No recipes available yet."}</>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        // Main App Component
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [userRole, setUserRole] = useState('baker');
+            const [recipes, setRecipes] = useState([]);
+            const [activeTab, setActiveTab] = useState('list');
+            const [editingRecipe, setEditingRecipe] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [firebaseConnected, setFirebaseConnected] = useState(false);
+
+            useEffect(() => {
+                // Check Firebase connection
+                if (auth && db) {
+                    setFirebaseConnected(true);
+                    console.log("✅ Firebase services connected");
+                }
+
+                // Listen for auth state changes
+                const unsubscribeAuth = auth?.onAuthStateChanged(async (user) => {
+                    if (user) {
+                        console.log("👤 User authenticated:", user.email);
+                        setUser(user);
+                        const role = await firebaseService.getUserRole(user.uid);
+                        setUserRole(role);
+                        console.log("🔐 User role:", role);
+                        
+                        // Load recipes
+                        loadRecipes();
+                    } else {
+                        console.log("🚪 User signed out");
+                        setUser(null);
+                        setUserRole('baker');
+                        setRecipes([]);
+                    }
+                    setLoading(false);
+                });
+
+                return () => {
+                    if (unsubscribeAuth) unsubscribeAuth();
+                };
+            }, []);
+            const loadRecipes = async () => {
+                try {
+                    console.log("📖 Loading recipes...");
+                    const recipeList = await firebaseService.getRecipes();
+                    setRecipes(recipeList);
+                    console.log(`✅ Loaded ${recipeList.length} recipes`);
+                } catch (error) {
+                    console.error('❌ Error loading recipes:', error);
+                }
+            };
+
+            const handleLogout = async () => {
+                try {
+                    await firebaseService.signOut();
+                } catch (error) {
+                    console.error('❌ Error signing out:', error);
+                }
+            };
+
+            const saveRecipe = async (recipe) => {
+                try {
+                    console.log("💾 Saving recipe:", recipe.name);
+                    const recipeId = await firebaseService.saveRecipe(recipe, user.uid);
+                    if (recipeId && !recipe.id) {
+                        recipe.id = recipeId;
+                    }
+                    
+                    // Reload recipes to get updated data
+                    loadRecipes();
+                    
+                    setActiveTab('list');
+                    setEditingRecipe(null);
+                    console.log("✅ Recipe saved successfully");
+                } catch (error) {
+                    console.error('❌ Error saving recipe:', error);
+                    throw error;
+                }
+            };
+
+            const deleteRecipe = async (id) => {
+                if (confirm('🗑️ Are you sure you want to delete this recipe? This cannot be undone.')) {
+                    try {
+                        console.log("🗑️ Deleting recipe:", id);
+                        await firebaseService.deleteRecipe(id);
+                        loadRecipes();
+                        console.log("✅ Recipe deleted successfully");
+                    } catch (error) {
+                        console.error('❌ Error deleting recipe:', error);
+                        alert('Error deleting recipe. Please try again.');
+                    }
+                }
+            };
+            const editRecipe = (recipe) => {
+                setEditingRecipe(recipe);
+                setActiveTab('form');
+            };
+
+            const printRecipe = (recipe) => {
+                try {
+                    console.log("🖨️ Generating PDF for:", recipe.name);
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    // Header with BreadHub branding
+                    doc.setFontSize(24);
+                    doc.setTextColor(102, 126, 234); // Brand color
+                    doc.text('🍞 BreadHub Recipe', 20, 25);
+                    
+                    // Recipe title
+                    doc.setFontSize(18);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(recipe.name, 20, 45);
+                    
+                    // Recipe details
+                    doc.setFontSize(12);
+                    doc.text(`Type: ${recipe.type === 'bread' ? '🍞 Bread' : '🥤 Drink'}`, 20, 60);
+                    doc.text(`Created: ${new Date(recipe.createdAt).toLocaleDateString()}`, 20, 70);
+                    
+                    if (recipe.type === 'bread' && recipe.totalFlour) {
+                        doc.text(`Total Flour: ${recipe.totalFlour}g`, 20, 80);
+                        
+                        // Add bread count information
+                        const totalWeight = recipe.ingredients.reduce((total, ing) => total + (parseFloat(ing.quantity) || 0), 0);
+                        doc.text(`Total Dough Weight: ${totalWeight}g`, 20, 90);
+                        
+                        if (recipe.pieceWeight && parseFloat(recipe.pieceWeight) > 0) {
+                            const pieceCount = Math.floor(totalWeight / parseFloat(recipe.pieceWeight));
+                            doc.text(`Makes: ${pieceCount} pieces (${recipe.pieceWeight}g each)`, 20, 100);
+                        }
+                    }
+
+                    // Ingredients table
+                    const tableData = recipe.ingredients.map(ing => {
+                        const row = [
+                            ing.name,
+                            `${ing.quantity} ${ing.unit}`
+                        ];
+                        
+                        if (recipe.type === 'bread' && ing.percentage) {
+                            row.push(`${ing.percentage}%`);
+                        }
+                        
+                        if (userRole === 'admin') {
+                            row.push(`$${ing.cost}`);
+                        }
+                        
+                        return row;
+                    });
+
+                    const headers = ['Ingredient', 'Quantity'];
+                    if (recipe.type === 'bread') headers.push('Baker\'s %');
+                    if (userRole === 'admin') headers.push('Cost');
+
+                    doc.autoTable({
+                        head: [headers],
+                        body: tableData,
+                        startY: recipe.type === 'bread' && recipe.totalFlour ? 110 : 80,
+                        styles: {
+                            fontSize: 10,
+                            cellPadding: 5
+                        },
+                        headStyles: {
+                            fillColor: [102, 126, 234],
+                            textColor: 255
+                        }
+                    });
+                    // Add cost summary for admins
+                    if (userRole === 'admin') {
+                        const finalY = doc.lastAutoTable.finalY + 20;
+                        doc.setFontSize(14);
+                        doc.setTextColor(0, 102, 204);
+                        doc.text(`💰 Total Cost: $${recipe.totalCost}`, 20, finalY);
+                        
+                        if (recipe.type === 'bread' && recipe.totalFlour) {
+                            doc.setFontSize(12);
+                            doc.setTextColor(102, 102, 102);
+                            const costPer100g = (recipe.totalCost / (parseFloat(recipe.totalFlour) / 100)).toFixed(2);
+                            doc.text(`Cost per 100g flour: $${costPer100g}`, 20, finalY + 10);
+                        }
+                    }
+
+                    // Footer
+                    const pageHeight = doc.internal.pageSize.height;
+                    doc.setFontSize(8);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text('Generated by BreadHub Recipe Manager', 20, pageHeight - 10);
+                    doc.text(new Date().toLocaleString(), 150, pageHeight - 10);
+
+                    // Save the PDF
+                    const fileName = `${recipe.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_recipe.pdf`;
+                    doc.save(fileName);
+                    console.log("✅ PDF generated successfully");
+                } catch (error) {
+                    console.error('❌ Error generating PDF:', error);
+                    alert('Error generating PDF. Please try again.');
+                }
+            };
+
+            // Render logic
+            if (loading) {
+                return (
+                    <div className="container">
+                        <div className="loading">
+                            <div style={{fontSize: '2rem', marginBottom: '20px'}}>🍞</div>
+                            <div>Loading BreadHub...</div>
+                        </div>
+                    </div>
+                );
+            }
+            if (!firebaseConnected) {
+                return (
+                    <div className="container">
+                        <div className="card">
+                            <div className="error">
+                                <h3>🔥 Firebase Configuration Issue</h3>
+                                <p>Unable to connect to Firebase. Please check:</p>
+                                <ul style={{marginLeft: '20px', marginTop: '10px'}}>
+                                    <li>Firebase project is set up correctly</li>
+                                    <li>Firestore database is created</li>
+                                    <li>Authentication is enabled</li>
+                                    <li>Internet connection is stable</li>
+                                </ul>
+                                <p style={{marginTop: '10px'}}>Check the browser console for detailed error messages.</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (!user) {
+                return <AuthForm onAuthStateChange={setUser} />;
+            }
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>🍞 BreadHub Recipe Manager</h1>
+                        <p>Professional recipe management with Firebase cloud storage & baker's percentages</p>
+                    </div>
+
+                    <div className="firebase-status firebase-connected">
+                        ✅ Connected to Firebase Cloud - Your data is safely stored and synced
+                    </div>
+
+                    <div className="card">
+                        <div className="user-info">
+                            <span>
+                                👤 Welcome, {user.email} 
+                                <span style={{
+                                    marginLeft: '10px', 
+                                    padding: '2px 8px', 
+                                    background: userRole === 'admin' ? '#dc3545' : '#28a745',
+                                    color: 'white', 
+                                    borderRadius: '12px', 
+                                    fontSize: '0.8rem'
+                                }}>
+                                    {userRole === 'admin' ? '👑 Admin' : '👨‍🍳 Baker'}
+                                </span>
+                            </span>
+                            <button className="btn btn-secondary" onClick={handleLogout}>
+                                🚪 Logout
+                            </button>
+                        </div>
+                        <div className="tabs">
+                            <div 
+                                className={`tab ${activeTab === 'list' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('list')}
+                            >
+                                📋 Recipes ({recipes.length})
+                            </div>
+                            {userRole === 'admin' && (
+                                <div 
+                                    className={`tab ${activeTab === 'form' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setActiveTab('form');
+                                        setEditingRecipe(null);
+                                    }}
+                                >
+                                    ➕ New Recipe
+                                </div>
+                            )}
+                        </div>
+
+                        {activeTab === 'list' && (
+                            <RecipeList
+                                recipes={recipes}
+                                onEdit={editRecipe}
+                                onDelete={deleteRecipe}
+                                onPrint={printRecipe}
+                                user={{role: userRole}}
+                            />
+                        )}
+
+                        {activeTab === 'form' && userRole === 'admin' && (
+                            <RecipeForm
+                                onSave={saveRecipe}
+                                editingRecipe={editingRecipe}
+                                onCancel={() => setActiveTab('list')}
+                                user={{role: userRole}}
+                            />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

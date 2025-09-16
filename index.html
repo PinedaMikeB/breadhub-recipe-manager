@@ -531,6 +531,7 @@
             const [pieceWeight, setPieceWeight] = useState('60'); // Default weight per piece in grams
             const [quantityNeeded, setQuantityNeeded] = useState(''); // New field for scaling
             const [electricLpgLabor, setElectricLpgLabor] = useState('5'); // Default ₱5 per piece
+            const [packagingCost, setPackagingCost] = useState('2'); // Default ₱2 per piece for packaging
             const [grossMargin, setGrossMargin] = useState('0.50'); // Default 50% margin
             const [originalIngredients, setOriginalIngredients] = useState([]); // Store original recipe
             const [originalTotalFlour, setOriginalTotalFlour] = useState('');
@@ -544,6 +545,7 @@
                     setTotalFlour(editingRecipe.totalFlour || '');
                     setPieceWeight(editingRecipe.pieceWeight || '60');
                     setElectricLpgLabor(editingRecipe.electricLpgLabor || '5');
+                    setPackagingCost(editingRecipe.packagingCost || '2');
                     setGrossMargin(editingRecipe.grossMargin || '0.50');
                     
                     // Store original recipe for scaling
@@ -654,7 +656,8 @@
                 const pieceCount = calculatePieceCount();
                 const baseProductionCost = pieceCount > 0 ? (totalCost / pieceCount) : 0;
                 const electricLpgLaborCost = parseFloat(electricLpgLabor) || 0;
-                return (baseProductionCost + electricLpgLaborCost).toFixed(2);
+                const packagingCostValue = parseFloat(packagingCost) || 0;
+                return (baseProductionCost + electricLpgLaborCost + packagingCostValue).toFixed(2);
             };
 
             const calculateSRP = () => {
@@ -691,6 +694,7 @@
                         totalFlour: type === 'bread' ? totalFlour : '',
                         pieceWeight: type === 'bread' ? pieceWeight : '',
                         electricLpgLabor: type === 'bread' ? electricLpgLabor : '',
+                        packagingCost: type === 'bread' ? packagingCost : '',
                         grossMargin: type === 'bread' ? grossMargin : '',
                         totalCost: calculateTotalCost(),
                         createdAt: editingRecipe?.createdAt || new Date().toISOString()
@@ -785,6 +789,21 @@
                                 />
                                 <small style={{color: '#666', fontSize: '0.9rem'}}>
                                     Additional costs per piece (electricity, gas, labor)
+                                </small>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Packaging Cost per Piece (₱)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={packagingCost}
+                                    onChange={(e) => setPackagingCost(e.target.value)}
+                                    placeholder="e.g., 2.00"
+                                    min="0"
+                                />
+                                <small style={{color: '#666', fontSize: '0.9rem'}}>
+                                    Packaging costs per piece (cups, plastic wrappers, bags, etc.)
                                 </small>
                             </div>
                             
@@ -890,6 +909,9 @@
                                         </div>
                                         <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666'}}>
                                             ⚡ Electric/LPG/Labor: ₱{electricLpgLabor} per piece
+                                        </div>
+                                        <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666'}}>
+                                            📦 Packaging cost: ₱{packagingCost} per piece
                                         </div>
                                         <div style={{marginTop: '5px', fontSize: '0.9rem', color: '#666', fontWeight: 'bold'}}>
                                             🔸 Total cost per piece: ₱{calculateCostPerPiece()}
@@ -1118,7 +1140,8 @@
                                                     Math.floor(totalWeight / parseFloat(recipe.pieceWeight)) : 0;
                                                 const productionCostPerPiece = pieceCount > 0 ? (parseFloat(recipe.totalCost) / pieceCount) : 0;
                                                 const electricLpgLabor = parseFloat(recipe.electricLpgLabor) || 0;
-                                                const totalCostPerPiece = productionCostPerPiece + electricLpgLabor;
+                                                const packagingCost = parseFloat(recipe.packagingCost) || 0;
+                                                const totalCostPerPiece = productionCostPerPiece + electricLpgLabor + packagingCost;
                                                 const grossMargin = parseFloat(recipe.grossMargin) || 0;
                                                 const srp = grossMargin < 1 ? (totalCostPerPiece / (1 - grossMargin)) : 0;
                                                 
@@ -1138,6 +1161,11 @@
                                                                 {electricLpgLabor > 0 && (
                                                                     <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
                                                                         ⚡ Electric/LPG/Labor: ₱{electricLpgLabor.toFixed(2)}
+                                                                    </div>
+                                                                )}
+                                                                {packagingCost > 0 && (
+                                                                    <div style={{fontSize: '0.9rem', marginTop: '5px'}}>
+                                                                        📦 Packaging cost: ₱{packagingCost.toFixed(2)}
                                                                     </div>
                                                                 )}
                                                                 <div style={{fontSize: '0.9rem', marginTop: '5px', fontWeight: 'bold'}}>

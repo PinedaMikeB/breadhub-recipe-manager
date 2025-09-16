@@ -440,7 +440,6 @@
         const AuthForm = ({ onAuthStateChange }) => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
-            const [role, setRole] = useState('baker');
             const [isSignUp, setIsSignUp] = useState(false);
             const [loading, setLoading] = useState(false);
             const [error, setError] = useState('');
@@ -452,7 +451,9 @@
 
                 try {
                     if (isSignUp) {
-                        await firebaseService.signUp(email, password, role);
+                        // Auto-assign role based on email - only michael.marga@gmail.com gets admin
+                        const assignedRole = email === 'michael.marga@gmail.com' ? 'admin' : 'baker';
+                        await firebaseService.signUp(email, password, assignedRole);
                     } else {
                         await firebaseService.signIn(email, password);
                     }
@@ -467,6 +468,13 @@
                         <h2 style={{textAlign: 'center', marginBottom: '20px'}}>
                             {isSignUp ? 'Create BreadHub Account' : 'Login to BreadHub'}
                         </h2>
+                        
+                        {isSignUp && (
+                            <div style={{background: '#e7f3ff', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '0.9rem'}}>
+                                📌 <strong>Note:</strong> New accounts are automatically assigned Baker role. 
+                                Only the admin email gets full access to costs and business features.
+                            </div>
+                        )}
                         
                         {error && <div className="error">{error}</div>}
                         
@@ -494,15 +502,6 @@
                                 />
                             </div>
                             
-                            {isSignUp && (
-                                <div className="form-group">
-                                    <label>Role</label>
-                                    <select value={role} onChange={(e) => setRole(e.target.value)}>
-                                        <option value="baker">Baker (View recipes only)</option>
-                                        <option value="admin">Admin (Full access + costs)</option>
-                                    </select>
-                                </div>
-                            )}                            
                             <button type="submit" className="btn" style={{width: '100%'}} disabled={loading}>
                                 {loading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Login')}
                             </button>
@@ -919,6 +918,201 @@
             );
         };
 
+        // Baker Recipe Scaler Component
+        const BakerRecipeScaler = ({ recipe, onPrint }) => {
+            const [quantityNeeded, setQuantityNeeded] = useState('');
+            const [scaledIngredients, setScaledIngredients] = useState([]);
+            const [showScaled, setShowScaled] = useState(false);
+
+            // Calculate original recipe stats
+            const originalTotalWeight = recipe.ingredients.reduce((total, ing) => total + (parseFloat(ing.quantity) || 0), 0);
+            const originalPieceCount = recipe.pieceWeight && parseFloat(recipe.pieceWeight) > 0 ? 
+                Math.floor(originalTotalWeight / parseFloat(recipe.pieceWeight)) : 0;
+
+            // Handle quantity change and scaling
+            const handleQuantityChange = (newQuantity) => {
+                setQuantityNeeded(newQuantity);
+                
+                if (newQuantity && originalPieceCount > 0) {
+                    const scaleFactor = parseFloat(newQuantity) / originalPieceCount;
+                    const scaled = recipe.ingredients.map(ing => ({
+                        ...ing,
+                        scaledQuantity: (parseFloat(ing.quantity) * scaleFactor).toFixed(1)
+                    }));
+                    setScaledIngredients(scaled);
+                    setShowScaled(true);
+                } else {
+                    setShowScaled(false);
+                    setScaledIngredients([]);
+                }
+            };
+
+            const printScaledRecipe = () => {
+                if (!showScaled) return;
+                
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+
+                    // Header
+                    doc.setFontSize(24);
+                    doc.setTextColor(102, 126, 234);
+                    doc.text('🍞 BreadHub Production Recipe', 20, 25);
+                    
+                    // Recipe info
+                    doc.setFontSize(18);
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(recipe.name, 20, 45);
+                    doc.setFontSize(12);
+                    doc.text(`Production Quantity: ${quantityNeeded} pieces`, 20, 60);
+                    doc.text(`Weight per piece: ${recipe.pieceWeight}g`, 20, 70);
+                    
+                    // Scaled ingredients table (NO COSTS)
+                    const tableData = scaledIngredients.map(ing => {
+                        const row = [ing.name, `${ing.scaledQuantity} ${ing.unit}`];
+                        if (recipe.type === 'bread' && ing.percentage) {
+                            row.push(`${ing.percentage}%`);
+                        }
+                        return row;
+                    });
+
+                    const headers = ['Ingredient', 'Quantity'];
+                    if (recipe.type === 'bread') headers.push('Baker\'s %');
+
+                    doc.autoTable({
+                        head: [headers],
+                        body: tableData,
+                        startY: 80,
+                        styles: { fontSize: 10, cellPadding: 5 },
+                        headStyles: { fillColor: [102, 126, 234], textColor: 255 }
+                    });
+                    
+                    // Production summary (NO COSTS)
+                    const scaledTotalWeight = scaledIngredients.reduce((total, ing) => total + parseFloat(ing.scaledQuantity), 0);
+                    const finalY = doc.lastAutoTable.finalY + 20;
+                    doc.setFontSize(12);
+                    doc.text(`🍞 Total dough weight: ${scaledTotalWeight.toFixed(1)}g`, 20, finalY);
+                    doc.text(`📊 Makes: ${quantityNeeded} pieces (${recipe.pieceWeight}g each)`, 20, finalY + 10);
+                    
+                    // Footer
+                    const pageHeight = doc.internal.pageSize.height;
+                    doc.setFontSize(8);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text('Generated by BreadHub Recipe Manager - Baker Production', 20, pageHeight - 10);
+                    doc.text(new Date().toLocaleString(), 150, pageHeight - 10);
+                    
+                    doc.save(`${recipe.name}_${quantityNeeded}pieces_production.pdf`);
+                } catch (error) {
+                    console.error('Error generating baker PDF:', error);
+                    alert('Error generating PDF. Please try again.');
+                }
+            };
+
+            return (
+                <div className="cost-summary" style={{background: '#f0f8f0', border: '2px solid #28a745'}}>
+                    <div style={{fontSize: '1rem', color: '#333', fontWeight: 'bold', marginBottom: '12px'}}>
+                        📏 Production Scaling
+                    </div>
+                    
+                    {/* Original Recipe Info */}
+                    <div style={{marginBottom: '15px', padding: '10px', background: '#ffffff', borderRadius: '6px'}}>
+                        <div style={{fontSize: '0.9rem', color: '#333', marginBottom: '5px'}}>
+                            📊 <strong>Original Recipe:</strong> {originalPieceCount} pieces ({recipe.pieceWeight}g each)
+                        </div>
+                        <div style={{fontSize: '0.9rem', color: '#333'}}>
+                            🍞 <strong>Total dough:</strong> {originalTotalWeight}g
+                        </div>
+                    </div>
+
+                    {/* Quantity Input */}
+                    <div style={{marginBottom: '15px'}}>
+                        <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333'}}>
+                            🎯 How many pieces do you need?
+                        </label>
+                        <input
+                            type="number"
+                            value={quantityNeeded}
+                            onChange={(e) => handleQuantityChange(e.target.value)}
+                            placeholder={`Original makes ${originalPieceCount} pieces`}
+                            style={{
+                                width: '200px', 
+                                padding: '10px', 
+                                fontSize: '1rem',
+                                border: '2px solid #28a745',
+                                borderRadius: '6px'
+                            }}
+                            min="1"
+                        />
+                        {quantityNeeded && (
+                            <button 
+                                onClick={() => setQuantityNeeded('')}
+                                style={{
+                                    marginLeft: '10px',
+                                    padding: '10px 15px',
+                                    background: '#6c757d',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                🔄 Reset
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Scaled Results */}
+                    {showScaled && (
+                        <div style={{marginTop: '15px', padding: '12px', background: '#e8f5e8', borderRadius: '6px', border: '1px solid #28a745'}}>
+                            <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#155724', marginBottom: '10px'}}>
+                                📋 Scaled Recipe ({quantityNeeded} pieces):
+                            </div>
+                            {scaledIngredients.map((ing, index) => (
+                                <div key={index} style={{
+                                    display: 'flex', 
+                                    justifyContent: 'space-between', 
+                                    padding: '5px 0',
+                                    borderBottom: index < scaledIngredients.length - 1 ? '1px solid #c3e6c3' : 'none'
+                                }}>
+                                    <span style={{fontWeight: '500'}}>{ing.name}:</span>
+                                    <span style={{fontWeight: 'bold', color: '#155724'}}>
+                                        {ing.scaledQuantity} {ing.unit}
+                                        {recipe.type === 'bread' && ing.percentage && ` (${ing.percentage}%)`}
+                                    </span>
+                                </div>
+                            ))}
+                            
+                            <div style={{marginTop: '12px', padding: '8px', background: '#ffffff', borderRadius: '4px'}}>
+                                <div style={{fontSize: '0.9rem', color: '#333'}}>
+                                    🍞 <strong>Scaled total dough:</strong> {scaledIngredients.reduce((total, ing) => total + parseFloat(ing.scaledQuantity), 0).toFixed(1)}g
+                                </div>
+                                <div style={{fontSize: '0.9rem', color: '#333', marginTop: '3px'}}>
+                                    📊 <strong>Will make:</strong> {quantityNeeded} pieces ({recipe.pieceWeight}g each)
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={printScaledRecipe}
+                                style={{
+                                    marginTop: '12px',
+                                    padding: '10px 20px',
+                                    background: '#28a745',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                🖨️ Print Scaled Recipe
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         // Recipe List Component
         const RecipeList = ({ recipes, onEdit, onDelete, onPrint, user }) => {
             const [searchTerm, setSearchTerm] = useState('');
@@ -1034,22 +1228,8 @@
                             )}
                             
                             {user.role === 'baker' && recipe.type === 'bread' && (
-                                <div className="cost-summary" style={{background: '#f0f8f0'}}>
-                                    {(() => {
-                                        const totalWeight = recipe.ingredients.reduce((total, ing) => total + (parseFloat(ing.quantity) || 0), 0);
-                                        const pieceCount = recipe.pieceWeight && parseFloat(recipe.pieceWeight) > 0 ? 
-                                            Math.floor(totalWeight / parseFloat(recipe.pieceWeight)) : 0;
-                                        
-                                        return (
-                                            <>
-                                                <div style={{fontSize: '0.9rem', color: '#333'}}>
-                                                    🍞 Total dough weight: {totalWeight}g
-                                                </div>
-                                                {pieceCount > 0 && (
-                                                    <div style={{fontSize: '0.9rem', marginTop: '5px', color: '#333'}}>
-                                                        📊 Makes approximately: {pieceCount} pieces ({recipe.pieceWeight}g each)
-                                                    </div>
-                                                )}
+                                <BakerRecipeScaler recipe={recipe} onPrint={onPrint} />
+                            )}
                                             </>
                                         );
                                     })()}

@@ -797,7 +797,7 @@
                                     min="1"
                                 />
                                 <small style={{color: '#666', fontSize: '0.9rem'}}>
-                                    Enter quantity to scale recipe automatically (original recipe will be saved)
+                                    Enter quantity to scale recipe automatically. The original recipe (base for costing) will be preserved and you can always reset back to it.
                                 </small>
                             </div>
                             
@@ -901,14 +901,27 @@
                                     ×
                                 </button>
                             </div>
-                        ))}                        <button type="button" className="btn btn-secondary" onClick={addIngredient}>
-                            + Add Ingredient
-                        </button>
-                        {quantityNeeded && originalIngredients.length > 0 && (
-                            <button type="button" className="btn btn-warning" onClick={resetScaling} style={{marginLeft: '10px'}}>
-                                🔄 Reset to Original
+                        ))}                        
+                        <div style={{display: 'flex', gap: '10px', alignItems: 'center', marginTop: '10px'}}>
+                            <button type="button" className="btn btn-secondary" onClick={addIngredient}>
+                                + Add Ingredient
                             </button>
-                        )}
+                            {editingRecipe && originalIngredients.length > 0 && (
+                                <button 
+                                    type="button" 
+                                    className="btn" 
+                                    onClick={resetScaling} 
+                                    style={{
+                                        background: '#ff6b35',
+                                        borderColor: '#ff6b35',
+                                        color: 'white'
+                                    }}
+                                    title="Reset back to original 500g flour recipe"
+                                >
+                                    🔄 Reset to Original Recipe (500g flour)
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="form-group">
@@ -1108,12 +1121,15 @@
                         📏 Production Scaling
                     </div>
                     
-                    <div style={{marginBottom: '15px', padding: '10px', background: '#ffffff', borderRadius: '6px'}}>
-                        <div style={{fontSize: '0.9rem', color: '#333', marginBottom: '5px'}}>
-                            📊 <strong>Original Recipe:</strong> {originalPieceCount} pieces ({recipe.pieceWeight}g each)
+                    <div style={{marginBottom: '15px', padding: '12px', background: '#ffffff', borderRadius: '6px', border: '2px solid #28a745'}}>
+                        <div style={{fontSize: '0.9rem', color: '#333', marginBottom: '8px'}}>
+                            📊 <strong>Original Base Recipe:</strong> {originalPieceCount} pieces ({recipe.pieceWeight}g each)
                         </div>
-                        <div style={{fontSize: '0.9rem', color: '#333'}}>
+                        <div style={{fontSize: '0.9rem', color: '#333', marginBottom: '5px'}}>
                             🍞 <strong>Total dough:</strong> {originalTotalWeight}g
+                        </div>
+                        <div style={{fontSize: '0.8rem', color: '#666', fontStyle: 'italic'}}>
+                            💡 This is the base recipe for costing - all scaling calculations start from here
                         </div>
                     </div>
 
@@ -1187,22 +1203,44 @@
                             }}
                             min="1"
                         />
-                        {quantityNeeded && (
+                        <div style={{marginTop: '12px', display: 'flex', gap: '10px', alignItems: 'center'}}>
+                            {quantityNeeded && (
+                                <button 
+                                    onClick={() => setQuantityNeeded('')}
+                                    style={{
+                                        padding: '8px 15px',
+                                        background: '#6c757d',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    Clear Quantity
+                                </button>
+                            )}
                             <button 
-                                onClick={() => setQuantityNeeded('')}
+                                onClick={() => {
+                                    setQuantityNeeded('');
+                                    setScaledIngredients([]);
+                                    setShowScaled(false);
+                                }}
                                 style={{
-                                    marginLeft: '10px',
-                                    padding: '10px 15px',
-                                    background: '#6c757d',
+                                    padding: '10px 20px',
+                                    background: '#ff6b35',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '6px',
-                                    cursor: 'pointer'
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold'
                                 }}
+                                title="Reset back to original 500g flour recipe"
                             >
-                                🔄 Reset
+                                🔄 Reset to Original Recipe (500g flour)
                             </button>
-                        )}
+                        </div>
                     </div>
 
                     {showScaled && (

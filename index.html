@@ -527,6 +527,7 @@
             const [name, setName] = useState('');
             const [type, setType] = useState('bread');
             const [ingredients, setIngredients] = useState([{ name: '', quantity: '', unit: 'g', cost: '' }]);
+            const [instructions, setInstructions] = useState('');
             const [totalFlour, setTotalFlour] = useState('');
             const [pieceWeight, setPieceWeight] = useState('60'); // Default weight per piece in grams
             const [quantityNeeded, setQuantityNeeded] = useState(''); // New field for scaling
@@ -542,6 +543,7 @@
                     setName(editingRecipe.name);
                     setType(editingRecipe.type);
                     setIngredients(editingRecipe.ingredients);
+                    setInstructions(editingRecipe.instructions || '');
                     setTotalFlour(editingRecipe.totalFlour || '');
                     setPieceWeight(editingRecipe.pieceWeight || '60');
                     setElectricLpgLabor(editingRecipe.electricLpgLabor || '5');
@@ -691,6 +693,7 @@
                         name,
                         type,
                         ingredients: type === 'bread' ? calculateBakersPercentage() : ingredients,
+                        instructions: instructions || '',
                         totalFlour: type === 'bread' ? totalFlour : '',
                         pieceWeight: type === 'bread' ? pieceWeight : '',
                         electricLpgLabor: type === 'bread' ? electricLpgLabor : '',
@@ -887,6 +890,24 @@
                         )}
                     </div>
 
+                    <div className="form-group">
+                        <label>Instructions & Important Notes</label>
+                        <textarea
+                            value={instructions}
+                            onChange={(e) => setInstructions(e.target.value)}
+                            placeholder="Example:&#10;1st Proofing time: 30 minutes&#10;2nd Proofing Time: 2 hours&#10;Baking time: 15 minutes&#10;Mixer duration time: 15 minutes&#10;Mixer speed: High&#10;Oven Temperature: 185°C&#10;Others: Add toppings after first proof"
+                            rows="8"
+                            style={{
+                                fontFamily: 'monospace',
+                                fontSize: '0.95rem',
+                                lineHeight: '1.4'
+                            }}
+                        />
+                        <small style={{color: '#666', fontSize: '0.9rem'}}>
+                            Include proofing times, baking temperature, mixer settings, and other important notes for bakers
+                        </small>
+                    </div>
+
                     <div className="cost-summary">
                         <div className="total-cost">
                             💰 Total Recipe Cost: ₱{calculateTotalCost()}
@@ -984,7 +1005,28 @@
                         </div>
                     </div>
 
-                    <div style={{marginBottom: '15px'}}>
+                    {recipe.instructions && (
+                        <div style={{marginBottom: '15px', padding: '12px', background: '#fff8dc', borderRadius: '6px', border: '1px solid #e6c200'}}>
+                            <div style={{fontSize: '0.95rem', fontWeight: 'bold', color: '#cc9900', marginBottom: '8px'}}>
+                                📋 Instructions & Important Notes:
+                            </div>
+                            <div style={{
+                                fontSize: '0.85rem', 
+                                color: '#333', 
+                                whiteSpace: 'pre-line',
+                                fontFamily: 'monospace',
+                                lineHeight: '1.3',
+                                background: '#ffffff',
+                                padding: '8px',
+                                borderRadius: '4px',
+                                border: '1px solid #e6c200'
+                            }}>
+                                {recipe.instructions}
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{marginBottom: '15px'}}>>
                         <label style={{display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333'}}>
                             🎯 How many pieces do you need?
                         </label>
@@ -1126,6 +1168,28 @@
                                     </div>
                                 ))}
                             </div>
+
+                            {recipe.instructions && (
+                                <div className="cost-summary" style={{background: '#fff8dc', border: '1px solid #e6c200'}}>
+                                    <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#cc9900', marginBottom: '10px'}}>
+                                        📋 Instructions & Important Notes:
+                                    </div>
+                                    <div style={{
+                                        fontSize: '0.9rem', 
+                                        color: '#333', 
+                                        whiteSpace: 'pre-line',
+                                        fontFamily: 'monospace',
+                                        lineHeight: '1.4',
+                                        background: '#ffffff',
+                                        padding: '10px',
+                                        borderRadius: '4px',
+                                        border: '1px solid #e6c200'
+                                    }}>
+                                        {recipe.instructions}
+                                    </div>
+                                </div>
+                            )}
+
                             {user.role === 'admin' && (
                                 <div className="cost-summary">
                                     <div className="total-cost">💰 Total Cost: ₱{recipe.totalCost}</div>

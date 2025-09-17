@@ -579,17 +579,27 @@
                 if (type === 'bread' && totalFlour && ingredients.length > 0) {
                     const flourWeight = parseFloat(totalFlour) || 0;
                     if (flourWeight > 0) {
-                        const hasPercentages = ingredients.some(ing => ing.percentage);
-                        if (hasPercentages) {
-                            const recalculated = ingredients.map(ing => {
-                                if (ing.percentage && !ing.name.toLowerCase().includes('flour')) {
-                                    const newQuantity = (flourWeight * parseFloat(ing.percentage) / 100).toFixed(1);
-                                    return { ...ing, quantity: newQuantity };
-                                }
-                                return ing;
-                            });
-                            setIngredients(recalculated);
-                        }
+                        const recalculated = ingredients.map(ing => {
+                            // Update flour ingredients to match total flour
+                            if (ing.name.toLowerCase().includes('flour')) {
+                                return { ...ing, quantity: flourWeight.toString() };
+                            }
+                            // For other ingredients, use baker's percentage if available
+                            else if (ing.percentage && parseFloat(ing.percentage) > 0) {
+                                const newQuantity = (flourWeight * parseFloat(ing.percentage) / 100).toFixed(1);
+                                return { ...ing, quantity: newQuantity };
+                            }
+                            // For ingredients without percentages, calculate percentage from current ratio to original flour
+                            else if (originalTotalFlour && parseFloat(originalTotalFlour) > 0) {
+                                const originalFlourWeight = parseFloat(originalTotalFlour);
+                                const currentQuantity = parseFloat(ing.quantity) || 0;
+                                const percentage = (currentQuantity / originalFlourWeight * 100).toFixed(1);
+                                const newQuantity = (flourWeight * parseFloat(percentage) / 100).toFixed(1);
+                                return { ...ing, quantity: newQuantity, percentage: percentage };
+                            }
+                            return ing;
+                        });
+                        setIngredients(recalculated);
                     }
                 }
             }, [totalFlour, type]); // Don't include ingredients to avoid infinite loop
@@ -632,9 +642,43 @@
 
             const resetScaling = () => {
                 if (originalIngredients.length > 0) {
+                    // Reset to original stored recipe
                     setIngredients(originalIngredients);
                     setTotalFlour(originalTotalFlour);
                     setQuantityNeeded('');
+                } else if (editingRecipe && editingRecipe.ingredients.length > 0) {
+                    // Reset to the recipe as it was when we started editing
+                    setIngredients(editingRecipe.ingredients);
+                    setTotalFlour(editingRecipe.totalFlour || '500');
+                    setQuantityNeeded('');
+                } else {
+                    // If no original recipe stored, reset flour to 500 and recalculate
+                    setTotalFlour('500');
+                    setQuantityNeeded('');
+                    // The useEffect for totalFlour changes will handle recalculation
+                }
+            };
+
+            const resetToBaseRecipe = () => {
+                // Force reset to 500g flour base recipe
+                setTotalFlour('500');
+                setQuantityNeeded('');
+                
+                // If we have original ingredients, use those
+                if (originalIngredients.length > 0) {
+                    // Scale original ingredients to 500g flour base
+                    const originalFlourWeight = parseFloat(originalTotalFlour) || 500;
+                    const scaleFactor = 500 / originalFlourWeight;
+                    
+                    const resetIngredients = originalIngredients.map(ing => ({
+                        ...ing,
+                        quantity: (parseFloat(ing.quantity) * scaleFactor).toFixed(1)
+                    }));
+                    
+                    setIngredients(resetIngredients);
+                } else {
+                    // Let the flour change useEffect handle the recalculation
+                    // This will trigger when totalFlour changes to '500'
                 }
             };
 
@@ -906,11 +950,11 @@
                             <button type="button" className="btn btn-secondary" onClick={addIngredient}>
                                 + Add Ingredient
                             </button>
-                            {editingRecipe && originalIngredients.length > 0 && (
+                            {editingRecipe && (
                                 <button 
                                     type="button" 
                                     className="btn" 
-                                    onClick={resetScaling} 
+                                    onClick={resetToBaseRecipe} 
                                     style={{
                                         background: '#ff6b35',
                                         borderColor: '#ff6b35',
@@ -1097,6 +1141,13 @@
             const originalPieceCount = recipe.pieceWeight && parseFloat(recipe.pieceWeight) > 0 ? 
                 Math.floor(originalTotalWeight / parseFloat(recipe.pieceWeight)) : 0;
 
+            // Reset to original recipe display (for bakers, this just clears scaling)
+            const resetToOriginalRecipe = () => {
+                setQuantityNeeded('');
+                setScaledIngredients([]);
+                setShowScaled(false);
+            };
+
             // Handle quantity change and scaling
             const handleQuantityChange = (newQuantity) => {
                 setQuantityNeeded(newQuantity);
@@ -1221,11 +1272,7 @@
                                 </button>
                             )}
                             <button 
-                                onClick={() => {
-                                    setQuantityNeeded('');
-                                    setScaledIngredients([]);
-                                    setShowScaled(false);
-                                }}
+                                onClick={resetToOriginalRecipe}
                                 style={{
                                     padding: '10px 20px',
                                     background: '#ff6b35',
@@ -1236,7 +1283,7 @@
                                     fontSize: '1rem',
                                     fontWeight: 'bold'
                                 }}
-                                title="Reset back to original 500g flour recipe"
+                                title="Reset back to original recipe view"
                             >
                                 🔄 Reset to Original Recipe (500g flour)
                             </button>

@@ -527,7 +527,13 @@
             const [name, setName] = useState('');
             const [type, setType] = useState('bread');
             const [ingredients, setIngredients] = useState([{ name: '', quantity: '', unit: 'g', cost: '' }]);
-            const [instructions, setInstructions] = useState('');
+            const [firstProofingTime, setFirstProofingTime] = useState('');
+            const [secondProofingTime, setSecondProofingTime] = useState('');
+            const [bakingTime, setBakingTime] = useState('');
+            const [mixerDurationTime, setMixerDurationTime] = useState('');
+            const [mixerSpeed, setMixerSpeed] = useState('');
+            const [ovenTemperature, setOvenTemperature] = useState('');
+            const [others, setOthers] = useState('');
             const [totalFlour, setTotalFlour] = useState('');
             const [pieceWeight, setPieceWeight] = useState('60'); // Default weight per piece in grams
             const [quantityNeeded, setQuantityNeeded] = useState(''); // New field for scaling
@@ -543,7 +549,16 @@
                     setName(editingRecipe.name);
                     setType(editingRecipe.type);
                     setIngredients(editingRecipe.ingredients);
-                    setInstructions(editingRecipe.instructions || '');
+                    
+                    // Handle new structured instructions or legacy single instructions field
+                    setFirstProofingTime(editingRecipe.firstProofingTime || '');
+                    setSecondProofingTime(editingRecipe.secondProofingTime || '');
+                    setBakingTime(editingRecipe.bakingTime || '');
+                    setMixerDurationTime(editingRecipe.mixerDurationTime || '');
+                    setMixerSpeed(editingRecipe.mixerSpeed || '');
+                    setOvenTemperature(editingRecipe.ovenTemperature || '');
+                    setOthers(editingRecipe.others || '');
+                    
                     setTotalFlour(editingRecipe.totalFlour || '');
                     setPieceWeight(editingRecipe.pieceWeight || '60');
                     setElectricLpgLabor(editingRecipe.electricLpgLabor || '5');
@@ -693,7 +708,13 @@
                         name,
                         type,
                         ingredients: type === 'bread' ? calculateBakersPercentage() : ingredients,
-                        instructions: instructions || '',
+                        firstProofingTime: firstProofingTime || '',
+                        secondProofingTime: secondProofingTime || '',
+                        bakingTime: bakingTime || '',
+                        mixerDurationTime: mixerDurationTime || '',
+                        mixerSpeed: mixerSpeed || '',
+                        ovenTemperature: ovenTemperature || '',
+                        others: others || '',
                         totalFlour: type === 'bread' ? totalFlour : '',
                         pieceWeight: type === 'bread' ? pieceWeight : '',
                         electricLpgLabor: type === 'bread' ? electricLpgLabor : '',
@@ -891,20 +912,111 @@
                     </div>
 
                     <div className="form-group">
-                        <label>Instructions & Important Notes</label>
-                        <textarea
-                            value={instructions}
-                            onChange={(e) => setInstructions(e.target.value)}
-                            placeholder="Example:&#10;1st Proofing time: 30 minutes&#10;2nd Proofing Time: 2 hours&#10;Baking time: 15 minutes&#10;Mixer duration time: 15 minutes&#10;Mixer speed: High&#10;Oven Temperature: 185°C&#10;Others: Add toppings after first proof"
-                            rows="8"
-                            style={{
-                                fontFamily: 'monospace',
-                                fontSize: '0.95rem',
-                                lineHeight: '1.4'
-                            }}
-                        />
-                        <small style={{color: '#666', fontSize: '0.9rem'}}>
-                            Include proofing times, baking temperature, mixer settings, and other important notes for bakers
+                        <label>🍞 Instructions & Important Notes</label>
+                        
+                        <div style={{
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                            gap: '15px',
+                            marginTop: '10px'
+                        }}>
+                            <div>
+                                <label style={{fontSize: '0.9rem', color: '#555', marginBottom: '5px', display: 'block'}}>
+                                    ⏰ 1st Proofing time:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={firstProofingTime}
+                                    onChange={(e) => setFirstProofingTime(e.target.value)}
+                                    placeholder="e.g., 30 minutes"
+                                    style={{width: '100%'}}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label style={{fontSize: '0.9rem', color: '#555', marginBottom: '5px', display: 'block'}}>
+                                    ⏰ 2nd Proofing Time:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={secondProofingTime}
+                                    onChange={(e) => setSecondProofingTime(e.target.value)}
+                                    placeholder="e.g., 2 hours"
+                                    style={{width: '100%'}}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label style={{fontSize: '0.9rem', color: '#555', marginBottom: '5px', display: 'block'}}>
+                                    🔥 Baking time:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={bakingTime}
+                                    onChange={(e) => setBakingTime(e.target.value)}
+                                    placeholder="e.g., 15 minutes"
+                                    style={{width: '100%'}}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label style={{fontSize: '0.9rem', color: '#555', marginBottom: '5px', display: 'block'}}>
+                                    🥄 Mixer duration time:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={mixerDurationTime}
+                                    onChange={(e) => setMixerDurationTime(e.target.value)}
+                                    placeholder="e.g., 15 minutes"
+                                    style={{width: '100%'}}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label style={{fontSize: '0.9rem', color: '#555', marginBottom: '5px', display: 'block'}}>
+                                    ⚡ Mixer speed:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={mixerSpeed}
+                                    onChange={(e) => setMixerSpeed(e.target.value)}
+                                    placeholder="e.g., High"
+                                    style={{width: '100%'}}
+                                />
+                            </div>
+                            
+                            <div>
+                                <label style={{fontSize: '0.9rem', color: '#555', marginBottom: '5px', display: 'block'}}>
+                                    🌡️ Oven Temperature:
+                                </label>
+                                <input
+                                    type="text"
+                                    value={ovenTemperature}
+                                    onChange={(e) => setOvenTemperature(e.target.value)}
+                                    placeholder="e.g., 185°C"
+                                    style={{width: '100%'}}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div style={{marginTop: '15px'}}>
+                            <label style={{fontSize: '0.9rem', color: '#555', marginBottom: '8px', display: 'block'}}>
+                                📝 Others:
+                            </label>
+                            <textarea
+                                value={others}
+                                onChange={(e) => setOthers(e.target.value)}
+                                placeholder="Add any additional notes, special toppings, or other instructions..."
+                                rows="3"
+                                style={{
+                                    width: '100%',
+                                    fontSize: '0.9rem'
+                                }}
+                            />
+                        </div>
+                        
+                        <small style={{color: '#666', fontSize: '0.9rem', marginTop: '10px', display: 'block'}}>
+                            Fill in the specific timing and temperature details that bakers need for consistent results
                         </small>
                     </div>
 
@@ -1005,7 +1117,7 @@
                         </div>
                     </div>
 
-                    {recipe.instructions && (
+                    {(recipe.firstProofingTime || recipe.secondProofingTime || recipe.bakingTime || recipe.mixerDurationTime || recipe.mixerSpeed || recipe.ovenTemperature || recipe.others) && (
                         <div style={{marginBottom: '15px', padding: '12px', background: '#fff8dc', borderRadius: '6px', border: '1px solid #e6c200'}}>
                             <div style={{fontSize: '0.95rem', fontWeight: 'bold', color: '#cc9900', marginBottom: '8px'}}>
                                 📋 Instructions & Important Notes:
@@ -1013,15 +1125,46 @@
                             <div style={{
                                 fontSize: '0.85rem', 
                                 color: '#333', 
-                                whiteSpace: 'pre-line',
-                                fontFamily: 'monospace',
-                                lineHeight: '1.3',
                                 background: '#ffffff',
-                                padding: '8px',
+                                padding: '10px',
                                 borderRadius: '4px',
                                 border: '1px solid #e6c200'
                             }}>
-                                {recipe.instructions}
+                                {recipe.firstProofingTime && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <strong>⏰ 1st Proofing time:</strong> {recipe.firstProofingTime}
+                                    </div>
+                                )}
+                                {recipe.secondProofingTime && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <strong>⏰ 2nd Proofing Time:</strong> {recipe.secondProofingTime}
+                                    </div>
+                                )}
+                                {recipe.bakingTime && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <strong>🔥 Baking time:</strong> {recipe.bakingTime}
+                                    </div>
+                                )}
+                                {recipe.mixerDurationTime && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <strong>🥄 Mixer duration time:</strong> {recipe.mixerDurationTime}
+                                    </div>
+                                )}
+                                {recipe.mixerSpeed && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <strong>⚡ Mixer speed:</strong> {recipe.mixerSpeed}
+                                    </div>
+                                )}
+                                {recipe.ovenTemperature && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <strong>🌡️ Oven Temperature:</strong> {recipe.ovenTemperature}
+                                    </div>
+                                )}
+                                {recipe.others && (
+                                    <div style={{marginBottom: '8px'}}>
+                                        <strong>📝 Others:</strong> {recipe.others}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1169,7 +1312,7 @@
                                 ))}
                             </div>
 
-                            {recipe.instructions && (
+                            {(recipe.firstProofingTime || recipe.secondProofingTime || recipe.bakingTime || recipe.mixerDurationTime || recipe.mixerSpeed || recipe.ovenTemperature || recipe.others) && (
                                 <div className="cost-summary" style={{background: '#fff8dc', border: '1px solid #e6c200'}}>
                                     <div style={{fontSize: '1rem', fontWeight: 'bold', color: '#cc9900', marginBottom: '10px'}}>
                                         📋 Instructions & Important Notes:
@@ -1177,15 +1320,46 @@
                                     <div style={{
                                         fontSize: '0.9rem', 
                                         color: '#333', 
-                                        whiteSpace: 'pre-line',
-                                        fontFamily: 'monospace',
-                                        lineHeight: '1.4',
                                         background: '#ffffff',
                                         padding: '10px',
                                         borderRadius: '4px',
                                         border: '1px solid #e6c200'
                                     }}>
-                                        {recipe.instructions}
+                                        {recipe.firstProofingTime && (
+                                            <div style={{marginBottom: '8px'}}>
+                                                <strong>⏰ 1st Proofing time:</strong> {recipe.firstProofingTime}
+                                            </div>
+                                        )}
+                                        {recipe.secondProofingTime && (
+                                            <div style={{marginBottom: '8px'}}>
+                                                <strong>⏰ 2nd Proofing Time:</strong> {recipe.secondProofingTime}
+                                            </div>
+                                        )}
+                                        {recipe.bakingTime && (
+                                            <div style={{marginBottom: '8px'}}>
+                                                <strong>🔥 Baking time:</strong> {recipe.bakingTime}
+                                            </div>
+                                        )}
+                                        {recipe.mixerDurationTime && (
+                                            <div style={{marginBottom: '8px'}}>
+                                                <strong>🥄 Mixer duration time:</strong> {recipe.mixerDurationTime}
+                                            </div>
+                                        )}
+                                        {recipe.mixerSpeed && (
+                                            <div style={{marginBottom: '8px'}}>
+                                                <strong>⚡ Mixer speed:</strong> {recipe.mixerSpeed}
+                                            </div>
+                                        )}
+                                        {recipe.ovenTemperature && (
+                                            <div style={{marginBottom: '8px'}}>
+                                                <strong>🌡️ Oven Temperature:</strong> {recipe.ovenTemperature}
+                                            </div>
+                                        )}
+                                        {recipe.others && (
+                                            <div style={{marginBottom: '8px'}}>
+                                                <strong>📝 Others:</strong> {recipe.others}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

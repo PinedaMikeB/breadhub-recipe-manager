@@ -585,37 +585,48 @@
                         
                         // Only proceed if flour weight actually differs from flour ingredient quantity
                         if (Math.abs(newFlourWeight - currentFlourQuantity) > 0.1) {
-                            // Calculate scale factor based on the change
-                            const scaleFactor = currentFlourQuantity > 0 ? newFlourWeight / currentFlourQuantity : 1;
-                            
-                            console.log('Scaling ingredients:', {
+                            console.log('Flour weight change detected:', {
                                 newFlourWeight,
                                 currentFlourQuantity,
+                                originalTotalFlour
+                            });
+                            
+                            // Use original ingredients as reference if available, otherwise use current
+                            const referenceIngredients = originalIngredients.length > 0 ? originalIngredients : ingredients;
+                            const referenceFlourWeight = parseFloat(originalTotalFlour) || 500; // Default to 500g if no original
+                            
+                            // Calculate scale factor from reference flour weight to new flour weight
+                            const scaleFactor = newFlourWeight / referenceFlourWeight;
+                            
+                            console.log('Scaling from reference:', {
+                                referenceFlourWeight,
                                 scaleFactor
                             });
                             
                             const recalculated = ingredients.map(ing => {
-                                const currentQuantity = parseFloat(ing.quantity) || 0;
-                                const currentCost = parseFloat(ing.cost) || 0;
+                                // Find corresponding ingredient in reference
+                                const referenceIng = referenceIngredients.find(ref => ref.name === ing.name) || ing;
+                                const referenceQuantity = parseFloat(referenceIng.quantity) || 0;
+                                const referenceCost = parseFloat(referenceIng.cost) || 0;
                                 
                                 // For flour ingredients, set quantity exactly to total flour weight
                                 if (ing.name.toLowerCase().includes('flour')) {
-                                    const newCost = currentCost > 0 ? (currentCost * scaleFactor).toFixed(2) : '0.00';
+                                    const newCost = referenceCost > 0 ? (referenceCost * scaleFactor).toFixed(2) : ing.cost;
                                     return { 
                                         ...ing, 
                                         quantity: newFlourWeight.toString(),
                                         cost: newCost
                                     };
                                 }
-                                // For other ingredients, scale both quantity and cost proportionally
+                                // For other ingredients, scale from reference values
                                 else {
-                                    const newQuantity = (currentQuantity * scaleFactor).toFixed(1);
-                                    const newCost = currentCost > 0 ? (currentCost * scaleFactor).toFixed(2) : '0.00';
+                                    const newQuantity = (referenceQuantity * scaleFactor).toFixed(1);
+                                    const newCost = referenceCost > 0 ? (referenceCost * scaleFactor).toFixed(2) : ing.cost;
                                     
-                                    // Update percentage based on new flour weight
-                                    const newPercentage = currentQuantity > 0 ? 
+                                    // Calculate percentage based on new flour weight
+                                    const newPercentage = referenceQuantity > 0 ? 
                                         ((parseFloat(newQuantity) / newFlourWeight) * 100).toFixed(1) : 
-                                        ing.percentage || '0.0';
+                                        (ing.percentage || '0.0');
                                     
                                     return { 
                                         ...ing, 

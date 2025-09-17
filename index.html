@@ -574,35 +574,63 @@
                 }
             }, [editingRecipe]);
 
-            // Auto-recalculate ingredient quantities when total flour changes
+            // Auto-recalculate ingredient quantities AND costs when total flour changes
             useEffect(() => {
                 if (type === 'bread' && totalFlour && ingredients.length > 0) {
-                    const flourWeight = parseFloat(totalFlour) || 0;
-                    if (flourWeight > 0) {
-                        const recalculated = ingredients.map(ing => {
-                            // Update flour ingredients to match total flour
-                            if (ing.name.toLowerCase().includes('flour')) {
-                                return { ...ing, quantity: flourWeight.toString() };
-                            }
-                            // For other ingredients, use baker's percentage if available
-                            else if (ing.percentage && parseFloat(ing.percentage) > 0) {
-                                const newQuantity = (flourWeight * parseFloat(ing.percentage) / 100).toFixed(1);
-                                return { ...ing, quantity: newQuantity };
-                            }
-                            // For ingredients without percentages, calculate percentage from current ratio to original flour
-                            else if (originalTotalFlour && parseFloat(originalTotalFlour) > 0) {
-                                const originalFlourWeight = parseFloat(originalTotalFlour);
+                    const newFlourWeight = parseFloat(totalFlour) || 0;
+                    if (newFlourWeight > 0) {
+                        // Find current flour ingredient
+                        const currentFlourIngredient = ingredients.find(ing => ing.name.toLowerCase().includes('flour'));
+                        const currentFlourQuantity = currentFlourIngredient ? parseFloat(currentFlourIngredient.quantity) || 0 : 0;
+                        
+                        // Only proceed if flour weight actually differs from flour ingredient quantity
+                        if (Math.abs(newFlourWeight - currentFlourQuantity) > 0.1) {
+                            // Calculate scale factor based on the change
+                            const scaleFactor = currentFlourQuantity > 0 ? newFlourWeight / currentFlourQuantity : 1;
+                            
+                            console.log('Scaling ingredients:', {
+                                newFlourWeight,
+                                currentFlourQuantity,
+                                scaleFactor
+                            });
+                            
+                            const recalculated = ingredients.map(ing => {
                                 const currentQuantity = parseFloat(ing.quantity) || 0;
-                                const percentage = (currentQuantity / originalFlourWeight * 100).toFixed(1);
-                                const newQuantity = (flourWeight * parseFloat(percentage) / 100).toFixed(1);
-                                return { ...ing, quantity: newQuantity, percentage: percentage };
-                            }
-                            return ing;
-                        });
-                        setIngredients(recalculated);
+                                const currentCost = parseFloat(ing.cost) || 0;
+                                
+                                // For flour ingredients, set quantity exactly to total flour weight
+                                if (ing.name.toLowerCase().includes('flour')) {
+                                    const newCost = currentCost > 0 ? (currentCost * scaleFactor).toFixed(2) : '0.00';
+                                    return { 
+                                        ...ing, 
+                                        quantity: newFlourWeight.toString(),
+                                        cost: newCost
+                                    };
+                                }
+                                // For other ingredients, scale both quantity and cost proportionally
+                                else {
+                                    const newQuantity = (currentQuantity * scaleFactor).toFixed(1);
+                                    const newCost = currentCost > 0 ? (currentCost * scaleFactor).toFixed(2) : '0.00';
+                                    
+                                    // Update percentage based on new flour weight
+                                    const newPercentage = currentQuantity > 0 ? 
+                                        ((parseFloat(newQuantity) / newFlourWeight) * 100).toFixed(1) : 
+                                        ing.percentage || '0.0';
+                                    
+                                    return { 
+                                        ...ing, 
+                                        quantity: newQuantity,
+                                        cost: newCost,
+                                        percentage: newPercentage
+                                    };
+                                }
+                            });
+                            
+                            setIngredients(recalculated);
+                        }
                     }
                 }
-            }, [totalFlour, type]); // Don't include ingredients to avoid infinite loop
+            }, [totalFlour, type]);
 
             // Scale recipe when quantity needed changes
             useEffect(() => {
